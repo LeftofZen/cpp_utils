@@ -6,7 +6,9 @@
 #include <typeindex>
 
 // MessageSystem holds n SubMessage systems, one for each type of message it sends
-// All creation of the sub-message systems is automatic and handled internally :D
+// All creation of the sub-message systems is automatic and handled internally
+// SubMessageSystem is only required until using a compiler with std::any (C++17) 
+// support. Then the additional abstraction layer(SubMessageSystem) isn't needed.
 struct MessageSystem
 {
 	struct ISubMessageSystem
