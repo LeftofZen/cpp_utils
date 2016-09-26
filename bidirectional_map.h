@@ -1,3 +1,5 @@
+#pragma once
+
 #include "ranged_container_utils.h"
 #include <set>
 #include <pair>
