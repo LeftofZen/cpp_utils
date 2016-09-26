@@ -1,3 +1,4 @@
+#pragma once
 
 // A singleton class that will call std::abort by default, but also have it's
 // internal function call mocked out for testing
