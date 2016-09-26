@@ -46,14 +46,13 @@ T fold(T arg, TArgs... args)
 	return TFoldDirection::fold(arg, args...);
 }
 
-#pragma endregion
-
 template <typename T, typename... TArgs>
 T all(T arg, TArgs... args)
 {
 	return fold<fold_left_trait<std::logical_and<bool>>>(arg, args...);
 }
 
+#pragma endregion
 
 //int main(int argc, char** argv)
 //{
