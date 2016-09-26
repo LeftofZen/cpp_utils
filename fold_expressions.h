@@ -1,44 +1,66 @@
 
+#include <functional>
+
 #pragma region FoldExpressions
 
-// Until we get fold expressions in C++17 (http://en.cppreference.com/w/cpp/language/fold)
-// we'll use a 'poor-mans fold expression' which is just variadic template recursion and expansion
-
-// base case for the below
-bool fold_and(bool b)
+struct fold_base
 {
-    return b;
-}
+	template <typename T>
+	static T fold(T arg)
+	{
+		return arg;
+	};
+};
 
-// left fold over logical and (&&)
-// uses variadic template recursion+expansion
-template<typename... Args>
-bool fold_logical_and_left(bool b, Args... args)
+template <typename UnaryOp>
+struct fold_left_trait : public fold_base
 {
-    return b && fold_and(args...);
-}
+	// bring in the recursive base case from the parent
+	using fold_base::fold;
 
-// right fold over logical and (&&)
-// uses variadic template recursion+expansion
-template<typename... Args>
-bool fold_logical_and_right(bool b, Args... args)
+	template <typename T, typename... TArgs>
+	static T fold(T arg, TArgs... args)
+	{
+		static UnaryOp sUnaryOp;
+		return sUnaryOp(fold(args...), arg);
+	}
+};
+
+template <typename UnaryOp>
+struct fold_right_trait : public fold_base
 {
-    return fold_and(args...) && b;
-}
+	// bring in the recursive base case from the parent
+	using fold_base::fold;
 
-// base case for the below
-template <typename T>
-bool unary_fold_over(T t)
-{ return t; }
+	template <typename T, typename... TArgs>
+	static T fold(T arg, TArgs... args)
+	{
+		static UnaryOp sUnaryOp;
+		return sUnaryOp(arg, fold(args...));
+	}
+};
 
-// left fold over logical and (&&)
-// uses variadic template recursion+expansion
-template<typename Functor, typename T, typename... TArgs>
-auto unary_fold_over(T t, TArgs... args) -> typename std::result_of<Functor(T, T)>::type
+template <typename TFoldDirection, typename T, typename... TArgs>
+T fold(T arg, TArgs... args)
 {
-    return Functor()(t, unary_fold_over(args...));
+	return TFoldDirection::fold(arg, args...);
 }
-
-
 
 #pragma endregion
+
+template <typename T, typename... TArgs>
+T all(T arg, TArgs... args)
+{
+	return fold<fold_left_trait<std::logical_and<bool>>>(arg, args...);
+}
+
+
+//int main(int argc, char** argv)
+//{
+//	//bool result = fold<fold_left_trait<std::logical_and<bool>>>(true, true, false, true);
+//	bool result = all(true, true, false, true);
+//
+//	//std::cout << std::boolalpha << result << std::endl;
+//
+//	return 0;
+//}
