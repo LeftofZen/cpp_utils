@@ -4,8 +4,6 @@
 #include <functional>
 #include <vector>
 
-#pragma region RangedForEach
-
 /*
 Templated over container type itself rather than the internal type
 This method is much cleaner than the above.
@@ -22,12 +20,16 @@ void RangedForEach(const T container, std::function<void(typename T::value_type&
 template <typename T>
 void RangedForEachValue(const T container, std::function<void(typename T::mapped_type&)> fn)
 {
-	std::for_each(container.begin(), container.end(), [fn] (typename T::mapped_type& v) { fn(v.second); });
+	RangedForEach(container, [fn] (typename T::mapped_type& v) { fn(v.second); });
 }
 
-#pragma endregion
+// Maps - keys only
+template <typename T>
+void RangedForEachKey(const T container, std::function<void(typename T::key_type&)> fn)
+{
+	RangedForEach(container, [fn] (typename T::mapped_type& v) { fn(v.first); });
+}
 
-#pragma region RangedFind
 
 /**
  * Templated over container type itself rather than the internal type (which results in much more complicated code
@@ -70,7 +72,17 @@ bool RangedFind(const T& container, const typename T::value_type& val)
 }
 
 
-
+// This is for things like queues, sets and vectors
+// It tries to find an item 'val'
+template <typename T>
+const typename T::mapped_type& RangedFindValueWithDefault(
+	const T& container,
+	const typename T::key_type& val,
+	const typename T::mapped_type& to_return_if_val_not_found)
+{
+	auto find_result = container.find(val);
+	return ((find_result == std::end(container)) ? to_return_if_val_not_found : find_result->second);
+}
 
 
 // This is a predicated find for things like queues, sets and vectors
@@ -81,5 +93,3 @@ bool RangedFindIf(const T& container, UnaryPredicate pred)
 }
 
 // TODO: add other predicated finds
-
-#pragma endregion

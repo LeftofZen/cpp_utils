@@ -3,8 +3,37 @@
 #include <algorithm>
 #include <iterator>
 #include <functional>
+#include <vector>
+#include <utility>
+#include <memory>
+#include <type_traits>
 
-#pragma region Misc
+// Unfortunately until we get proper reflection in C++ we have to make do with horrible
+// macros. MEMBER_CHECKER will define structs for whether a given member 'member'
+// exists. We can call the defined structs with HAS_MEMBER(class, struct)
+#define MEMBER_CHECKER(member)                                                         \
+	template<typename T, typename = void>                                              \
+	struct has_ ## member                                                              \
+		: std::false_type { };                                                         \
+	                                                                                   \
+	template<typename T>                                                               \
+	struct has_ ## member <T, decltype(std::declval<T>(). ## member, void())>          \
+		: std::true_type { };
+
+#define HAS_MEMBER(classs, member) has_ ## member<classs>::value
+
+// Define any members we want to check for below.
+//MEMBER_CHECKER(Y);
+//MEMBER_CHECKER(x);
+
+
+// Given an enum class value, this returns the underlying value of that enum value.
+template <typename T>
+constexpr auto GetUnderlyingValueFromEnum(const T& t) -> typename std::underlying_type<T>::type
+{
+	return static_cast<typename std::underlying_type<T>::type>(t);
+}
+
 
 // Modified from http://en.cppreference.com/w/cpp/algorithm/set_difference
 // std::set_difference requires both input containers to be sorted and produces a sorted output container
@@ -47,12 +76,65 @@ inline auto RangedUnsortedSetDifference(
 	const TContainer& container1,
 	const TContainer& container2,
 	const UContainer& outputContainer
-    /* pass in inserter/iterator here*/) -> decltype(typename UContainer::iterator)
+	/* pass in inserter/iterator here*/)
+	-> typename UContainer::iterator&
 {
-	return = UnsortedSetDifference(
+	return UnsortedSetDifference(
 		std::begin(container1), std::end(container1),
 		std::begin(container2), std::end(container2),
 		std::back_inserter(outputContainer));
 }
 
-#pragma endregion
+// Given a list of T, generate all pairs of <T, T>
+template <typename T>
+constexpr std::vector<std::pair<T, T>> GeneratePairwisePermutations(std::initializer_list<T> initList)
+{
+	std::vector<std::pair<T, T>> permutations;
+
+	for (const auto& a : initList)
+	{
+		for (const auto& b : initList)
+		{
+			permutations.emplace_back(a, b);
+		}
+	}
+
+	return permutations;
+}
+
+
+// std::hash specialisation for std::pair<A,B> since C++ doesn't specialise it,
+// and I don't want to include boost for this sole use case. I've copied out
+// boost's hash_combine which chains hashes together. It assumes there is a
+// std::hash<A> and std::hash<B> defined somewhere - otherwise a compiler error
+// is generated.
+
+template <typename T, typename U>
+inline size_t HashCombine(const T& t, const U& u)
+{
+	std::hash<T> tHasher;
+	std::hash<U> uHasher;
+	return (tHasher(t) ^ uHasher(u)) + 0x9e3779b9 + (tHasher(t) << 6) + (tHasher(t) >> 2);
+}
+
+inline size_t HashCombine(std::size_t hash1, std::size_t hash2)
+{
+	return (hash1 ^ hash2) + 0x9e3779b9 + (hash1 << 6) + (hash1 >> 2);
+}
+
+namespace std
+{
+	// for std::pair<T, U>
+	template <typename T, typename U>
+	struct hash<std::pair<T, U>>
+	{
+		size_t operator()(const std::pair<T, U>& tu) const
+		{
+			//std::hash<T> tHasher;
+			//std::hash<U> uHasher;
+			// '0' is the seed, and its fine to hardcode it to 0
+			//return HashCombine(tHasher(tu.first), uHasher(tu.second));
+			return HashCombine(tu.first, tu.second);
+		}
+	};
+}

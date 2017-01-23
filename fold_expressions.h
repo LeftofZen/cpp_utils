@@ -2,8 +2,6 @@
 
 #include <functional>
 
-#pragma region FoldExpressions
-
 struct fold_base
 {
 	template <typename T>
@@ -52,8 +50,6 @@ T all(T arg, TArgs... args)
 {
 	return fold<fold_left_trait<std::logical_and<bool>>>(arg, args...);
 }
-
-#pragma endregion
 
 //int main(int argc, char** argv)
 //{

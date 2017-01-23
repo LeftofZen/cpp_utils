@@ -8,9 +8,7 @@
 #include <typeindex>
 
 // MessageSystem holds n SubMessage systems, one for each type of message it sends
-// All creation of the sub-message systems is automatic and handled internally
-// SubMessageSystem is only required until using a compiler with std::any (C++17) 
-// support. Then the additional abstraction layer(SubMessageSystem) isn't needed.
+// All creation of the sub-message systems is automatic and handled internally :D
 struct MessageSystem
 {
 	struct ISubMessageSystem
@@ -78,6 +76,26 @@ struct Trade{};
 struct InstrStatus{};
 using CustomMsg = std::tuple<int, char, Trade>;
 
+struct ListenerOfTrades
+{
+	// function operator
+	void operator()(const Trade& trade)
+	{
+		std::cout << "Function operator: " << trade.a << std::endl;
+	}
+
+	void OnMessage(const Trade& trade)
+	{
+		std::cout << "OnMessage_Trade: " << trade.a << std::endl;
+	}
+
+	void OnMessage(const InstrStatus&)
+	{
+		std::cout << "OnMessage_InstrumentStatus: " << std::endl;
+	}
+
+};
+
 void TradeListener(const Trade& trade)
 {
 	(void) trade;
@@ -108,6 +126,10 @@ int main(int argc, char** argv)
 	msgSystem.AddListener(mTradeFunc2);
 
 	msgSystem.AddListener(&CustomMessageListener);
+
+	ListenerOfTrades listener;
+	msgSystem.AddListener<Trade>(listener);
+	msgSystem.AddListener<InstrStatus>(listener);
 
 	// msg structs
 	Trade trade;
