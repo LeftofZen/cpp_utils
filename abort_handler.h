@@ -1,29 +1,51 @@
 #pragma once
 
-// A singleton class that will call std::abort by default, but also have it's
-// internal function call mocked out for testing
-class AbortHandler
+#include <cstdlib>
+
+namespace AbortHandler
 {
-public:
-	static void Abort()
+	struct IAborter
 	{
-		static AbortHandler instance; // Guaranteed to be destroyed.
-		instance.InternalAbort();
+		virtual void Abort() const = 0;
+	};
+
+
+	struct Aborter final : public IAborter
+	{
+		void Abort() const override
+		{
+			//std::cout << "abort" << std::endl;
+			//std::abort();
+		}
+	};
+
+	struct MockAborter final : public IAborter
+	{
+		void Abort() const override
+		{
+			//std::cout << "mock_abort" << std::endl;
+			//std::abort();
+		}
+	};
+
+	namespace Handlers
+	{
+		constexpr static const Aborter DefaultAbortHandler;
+		constexpr static const MockAborter DefaultMockAbortHandler;
 	}
 
-	// Abiding by the rule of 5
-	AbortHandler(const AbortHandler&) = delete;
-	AbortHandler& operator=(const AbortHandler&) = delete;
-	AbortHandler(AbortHandler&&) = delete;
-	AbortHandler& operator=(AbortHandler&&) = delete;
-
-protected:
-	// this is virtual since we want to be able to mock it out in testing frameworks
-	virtual void InternalAbort() const
+	namespace
 	{
-		std::abort();
+		static const IAborter* currentAbortHandler = &Handlers::DefaultAbortHandler;
 	}
 
-private:
-	AbortHandler() = default;
-};
+	inline static void SetAbortHandler(const IAborter& abortHandler)
+	{
+		currentAbortHandler = &abortHandler;
+	}
+
+	inline static void Abort(const IAborter& abortHandler = *currentAbortHandler)
+	{
+		abortHandler.Abort();
+	}
+}
